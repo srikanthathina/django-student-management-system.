@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: student-management-system
+    runtime: python
+    plan: free
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application
+    healthCheckPath: /accounts/login/
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false            # paste your Neon / PostgreSQL connection string in the Render dashboard
+      - key: SEED_DEMO
+        value: "1"             # loads demo students on first deploy; set to 0 afterwards
+      - key: DJANGO_SUPERUSER_USERNAME
+        value: admin
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false            # choose a strong password in the Render dashboard
