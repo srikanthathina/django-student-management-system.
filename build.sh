@@ -8,7 +8,7 @@ python manage.py migrate --no-input
 
 # Optional: create the first admin login from environment variables (skipped if not set)
 if [[ -n "${DJANGO_SUPERUSER_USERNAME:-}" && -n "${DJANGO_SUPERUSER_PASSWORD:-}" ]]; then
-  python manage.py createsuperuser --no-input --email "${DJANGO_SUPERUSER_EMAIL:-admin@example.com}" || true
+  python manage.py ensure_admin
 fi
 
 # Optional: load demo students once (the command does nothing if students already exist)
