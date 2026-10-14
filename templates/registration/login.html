@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+<div class="panel login-card">
+  <h1>🎓 Student Management</h1>
+  <p class="muted">Sign in to continue.</p>
+  {% if form.errors %}<div class="alert">Incorrect username or password.</div>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <div class="field"><label for="id_username">Username</label>
+      <input class="input" type="text" name="username" id="id_username" autofocus autocomplete="username" required></div>
+    <div class="field"><label for="id_password">Password</label>
+      <input class="input" type="password" name="password" id="id_password" autocomplete="current-password" required></div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="btn">Sign in</button>
+  </form>
+</div>
+{% endblock %}

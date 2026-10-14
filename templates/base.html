@@ -1,0 +1,53 @@
+{% load static %}<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Student Management{% endblock %} · SMS</title>
+  <script>
+    /* set the theme before first paint so there is no light/dark flash */
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+{% if user.is_authenticated %}
+<header class="topbar">
+  <a class="brand" href="{% url 'dashboard' %}">🎓 Student<b>MS</b></a>
+  <button class="icon-btn nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">☰</button>
+  <div class="menu" id="menu">
+    <nav class="nav">
+      <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="{% url 'student_list' %}" class="{% if request.resolver_match.url_name == 'student_list' %}active{% endif %}">Students</a>
+      <a href="{% url 'student_add' %}" class="{% if request.resolver_match.url_name == 'student_add' %}active{% endif %}">Add student</a>
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+    </nav>
+    <div class="actions">
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+        <button class="btn ghost small">Sign out ({{ user.username }})</button>
+      </form>
+    </div>
+  </div>
+</header>
+{% endif %}
+
+<main class="container">
+  {% block content %}{% endblock %}
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite">
+  {% for message in messages %}
+    <div class="toast {{ message.tags }}"><span>{{ message }}</span><button class="x" aria-label="Dismiss">×</button></div>
+  {% endfor %}
+</div>
+
+<script src="{% static 'js/app.js' %}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

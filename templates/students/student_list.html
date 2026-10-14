@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Students</h1><p class="muted">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}{% if has_filters %} match your filters{% endif %}</p></div>
+  <div class="row">
+    <a class="btn ghost" href="{% url 'student_export' %}{% if querystring %}?{{ querystring }}{% endif %}">⬇ Export CSV</a>
+    <a class="btn" href="{% url 'student_add' %}">+ Add student</a>
+  </div>
+</div>
+
+<form method="get" class="filters" data-autosubmit>
+  <label class="search">Search<input class="input" type="search" name="q" value="{{ f.q }}" placeholder="Name, roll no or email"></label>
+  <label>Department
+    <select class="input" name="department"><option value="">All</option>
+      {% for d in departments %}<option value="{{ d.id }}" {% if f.department == d.id|stringformat:"s" %}selected{% endif %}>{{ d.code }}</option>{% endfor %}
+    </select></label>
+  <label>Status
+    <select class="input" name="status"><option value="">All</option>
+      {% for value, label in statuses %}<option value="{{ value }}" {% if f.status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+  <label>Gender
+    <select class="input" name="gender"><option value="">All</option>
+      {% for value, label in genders %}<option value="{{ value }}" {% if f.gender == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+  <label>Year
+    <select class="input" name="year"><option value="">All</option>
+      {% for y in years %}<option value="{{ y }}" {% if f.year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>{% endfor %}
+    </select></label>
+  <label>Sort
+    <select class="input" name="sort">
+      <option value="">Roll no ↑</option>
+      <option value="-roll" {% if f.sort == "-roll" %}selected{% endif %}>Roll no ↓</option>
+      <option value="name" {% if f.sort == "name" %}selected{% endif %}>Name A-Z</option>
+      <option value="-name" {% if f.sort == "-name" %}selected{% endif %}>Name Z-A</option>
+      <option value="-cgpa" {% if f.sort == "-cgpa" %}selected{% endif %}>CGPA high-low</option>
+      <option value="cgpa" {% if f.sort == "cgpa" %}selected{% endif %}>CGPA low-high</option>
+      <option value="-year" {% if f.sort == "-year" %}selected{% endif %}>Newest admission</option>
+    </select></label>
+  <div class="row"><button class="btn">Search</button>{% if has_filters or f.sort %}<a class="btn ghost" href="{% url 'student_list' %}">Reset</a>{% endif %}</div>
+</form>
+
+<div class="panel">
+  {% if students %}
+  <div class="table-wrap"><table class="stack">
+    <thead><tr><th>Roll no</th><th>Name</th><th>Dept</th><th>Email</th><th>CGPA</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+    {% for s in students %}
+      <tr>
+        <td data-label="Roll no">{{ s.roll_no }}</td>
+        <td data-label="Name">{{ s.full_name }}</td>
+        <td data-label="Dept">{{ s.department.code }}</td>
+        <td data-label="Email">{{ s.email }}</td>
+        <td data-label="CGPA">{{ s.cgpa|default_if_none:"–" }}</td>
+        <td data-label="Status"><span class="badge {{ s.status|lower }}">{{ s.get_status_display }}</span></td>
+        <td class="actions-cell">
+          <a class="btn ghost small" href="{% url 'student_edit' s.pk %}">Edit</a>
+          <button type="button" class="btn danger small" data-delete-url="{% url 'student_delete' s.pk %}" data-name="{{ s.full_name }}">Delete</button>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  {% if page_obj.has_other_pages %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if page_obj.has_previous %}<a class="btn ghost small" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.previous_page_number }}">← Previous</a>{% endif %}
+    <span class="muted">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a class="btn ghost small" href="?{% if querystring %}{{ querystring }}&{% endif %}page={{ page_obj.next_page_number }}">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="empty"><h2>No students found</h2><p>{% if has_filters %}Try different filters or <a href="{% url 'student_list' %}">reset them</a>.{% else %}Add your first student to get started.{% endif %}</p></div>
+  {% endif %}
+</div>
+
+<dialog id="deleteDialog" aria-labelledby="deleteTitle">
+  <form method="post" id="deleteForm">
+    {% csrf_token %}
+    <h3 id="deleteTitle">Delete this student?</h3>
+    <p>You are about to permanently delete <b id="deleteName"></b>. This cannot be undone.</p>
+    <div class="row end">
+      <button type="button" class="btn ghost" id="deleteCancel">Cancel</button>
+      <button class="btn danger">Yes, delete</button>
+    </div>
+  </form>
+</dialog>
+{% endblock %}

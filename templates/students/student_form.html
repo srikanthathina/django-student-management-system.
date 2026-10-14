@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1><p class="muted">Fields marked * are required.</p></div></div>
+<div class="panel">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="form-grid">
+      {% for field in form %}
+      <div class="field">
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.errors %}<ul class="err">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    <div class="row end" style="margin-top:18px">
+      <a class="btn ghost" href="{% url 'student_list' %}">Cancel</a>
+      <button class="btn">{{ submit_label }}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

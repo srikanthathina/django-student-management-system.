@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Delete student{% endblock %}
+{% block content %}
+<div class="panel login-card">
+  <h1>Delete student?</h1>
+  <p>Permanently delete <b>{{ object.full_name }}</b> ({{ object.roll_no }})? This cannot be undone.</p>
+  <form method="post" class="row end">
+    {% csrf_token %}
+    <a class="btn ghost" href="{% url 'student_list' %}">Cancel</a>
+    <button class="btn danger">Yes, delete</button>
+  </form>
+</div>
+{% endblock %}

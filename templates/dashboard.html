@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Dashboard</h1><p class="muted">Overview of your student records.</p></div>
+  <a class="btn" href="{% url 'student_add' %}">+ Add student</a>
+</div>
+
+{% if stats.total == 0 %}
+  <div class="panel empty">
+    <h2>No students yet</h2>
+    <p>Add your first student, or load demo data with <code>python manage.py seed_students</code></p>
+  </div>
+{% else %}
+<section class="cards">
+  <div class="stat" style="--accent:var(--c1)"><div class="label">Total students</div><div class="value">{{ stats.total }}</div></div>
+  <div class="stat" style="--accent:var(--c2)"><div class="label">Active</div><div class="value">{{ stats.active }}</div></div>
+  <div class="stat" style="--accent:var(--c5)"><div class="label">Graduated</div><div class="value">{{ stats.graduated }}</div></div>
+  <div class="stat" style="--accent:var(--c3)"><div class="label">Average CGPA</div><div class="value">{{ stats.avg_cgpa|default_if_none:"–" }}</div></div>
+  <div class="stat" style="--accent:var(--c6)"><div class="label">Admitted this year</div><div class="value">{{ stats.this_year }}</div></div>
+</section>
+
+<section class="grid-2">
+  <div class="panel"><h2>Students by department</h2><div class="chart-box"><canvas id="deptChart"></canvas></div><p class="hint">Click a bar to see that department's students.</p></div>
+  <div class="panel"><h2>Status breakdown</h2><div class="chart-box"><canvas id="statusChart"></canvas></div><p class="hint">Click a slice to filter. Click legend items to hide/show.</p></div>
+  <div class="panel"><h2>Admissions per year</h2><div class="chart-box"><canvas id="yearChart"></canvas></div></div>
+  <div class="panel"><h2>CGPA distribution</h2><div class="chart-box"><canvas id="cgpaChart"></canvas></div></div>
+</section>
+
+<section class="grid-2">
+  <div class="panel"><h2>Top performers</h2>
+    <div class="table-wrap"><table class="stack"><thead><tr><th>Student</th><th>Dept</th><th>CGPA</th></tr></thead><tbody>
+      {% for s in top_students %}<tr><td data-label="Student">{{ s.full_name }}</td><td data-label="Dept">{{ s.department.code }}</td><td data-label="CGPA"><b>{{ s.cgpa }}</b></td></tr>
+      {% empty %}<tr><td colspan="3" class="muted">No CGPA data yet.</td></tr>{% endfor %}
+    </tbody></table></div></div>
+  <div class="panel"><h2>Recently added</h2>
+    <div class="table-wrap"><table class="stack"><thead><tr><th>Student</th><th>Dept</th><th>Status</th></tr></thead><tbody>
+      {% for s in recent_students %}<tr><td data-label="Student">{{ s.full_name }}</td><td data-label="Dept">{{ s.department.code }}</td><td data-label="Status"><span class="badge {{ s.status|lower }}">{{ s.get_status_display }}</span></td></tr>{% endfor %}
+    </tbody></table></div></div>
+</section>
+{{ chart_data|json_script:"chart-data" }}
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if stats.total %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const data = JSON.parse(document.getElementById('chart-data').textContent);
+  const LIST = "{% url 'student_list' %}";
+  const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  const pointer = (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; };
+  const statusColor = { ACTIVE: '--c2', GRADUATED: '--c5', SUSPENDED: '--c3', DROPPED: '--c4' };
+  let charts = [];
+
+  function build() {
+    charts.forEach(c => c.destroy()); charts = [];
+    Chart.defaults.color = css('--muted');
+    Chart.defaults.borderColor = css('--line');
+    Chart.defaults.font.family = 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif';
+    const base = { responsive: true, maintainAspectRatio: false };
+
+    charts.push(new Chart('deptChart', {
+      type: 'bar',
+      data: { labels: data.departments.map(d => d.code),
+              datasets: [{ label: 'Students', data: data.departments.map(d => d.n), backgroundColor: css('--c1'), borderRadius: 8 }] },
+      options: { ...base, onHover: pointer,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { title: i => data.departments[i[0].dataIndex].name } } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        onClick: (e, els) => { if (els.length) location.href = LIST + '?department=' + data.departments[els[0].index].id; } }
+    }));
+
+    charts.push(new Chart('statusChart', {
+      type: 'doughnut',
+      data: { labels: data.status.map(s => s.label),
+              datasets: [{ data: data.status.map(s => s.n), backgroundColor: data.status.map(s => css(statusColor[s.key])), borderColor: css('--surface'), borderWidth: 3 }] },
+      options: { ...base, cutout: '62%', onHover: pointer, plugins: { legend: { position: 'bottom' } },
+        onClick: (e, els) => { if (els.length) location.href = LIST + '?status=' + data.status[els[0].index].key; } }
+    }));
+
+    charts.push(new Chart('yearChart', {
+      type: 'line',
+      data: { labels: data.years.map(y => y.admission_year),
+              datasets: [{ label: 'Admissions', data: data.years.map(y => y.n), borderColor: css('--c2'),
+                           backgroundColor: css('--c2') + '33', fill: true, tension: .35, pointRadius: 4 }] },
+      options: { ...base, onHover: pointer, plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+        onClick: (e, els) => { if (els.length) location.href = LIST + '?year=' + data.years[els[0].index].admission_year; } }
+    }));
+
+    charts.push(new Chart('cgpaChart', {
+      type: 'bar',
+      data: { labels: data.cgpa.labels, datasets: [{ label: 'Students', data: data.cgpa.values, backgroundColor: css('--c6'), borderRadius: 8 }] },
+      options: { ...base, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+    }));
+  }
+
+  build();
+  window.addEventListener('themechange', build);      // redraw with the new theme colours
+})();
+</script>
+{% endif %}
+{% endblock %}
