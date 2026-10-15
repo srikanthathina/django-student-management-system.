@@ -14,7 +14,7 @@ def env_list(name: str, default: str = "") -> list[str]:
 
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-key-change-me")
-DEBUG = os.environ.get("DEBUG", "True").lower() in ("1", "true", "yes")
+DEBUG = os.environ.get("DEBUG", "False").lower() in ("1", "true", "yes")
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
